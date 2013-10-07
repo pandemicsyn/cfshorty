@@ -1,5 +1,5 @@
 cfshorty
-========
+======
 
 This is the ghetto URL Shortner running at [http://blk.io](http://blk.io) that was inspired by [this bit.ly engineering blog post](http://word.bitly.com/post/62914279559/z-proxy)
 
@@ -7,7 +7,7 @@ Its built with Flask and uses the Rackspace Cloud Files object store for...stora
 
 It works by turning a loooong url into a short code (through magic!). The short code is then uploaded as an object to Cloud Files, and served up via the Cloud Files CDN service.  This allows you to expand url's without having to go through the blk.io web service again. 
 
-The contents of the uploaded object is just a simple HTML page that redirects a visitor the original long url when its accessed via CDN at http://small.blk.io/<SomeShortCode>:
+The contents of the uploaded object is just a simple HTML page that redirects a visitor the original long url when its accessed via CDN at http://small.blk.io/[SomeShortCode]:
 
 ```python
 fhines@kira:~$ http http://small.blk.io/e08e9d
@@ -43,6 +43,6 @@ If you are not redirected automatically to <a href='http://bloomberg.com'>http:/
 </html>
 ```
 
-In addition, when the object is stored in Cloud Files a meta data key called "X-Object-Meta-Longurl" is also set pointing to the original url. This allows you to determine the long url of a shortcode stored in Cloud Files by simply performing a head on the object. This is the method used by the Flask app when expanding a url by hitting http://blk.io/<SomeShortCode>
+In addition, when the object is stored in Cloud Files a meta data key called "X-Object-Meta-Longurl" is also set pointing to the original url. This allows you to determine the long url of a shortcode stored in Cloud Files by simply performing a head on the object. This is the method used by the Flask app when expanding a url by hitting http://blk.io/[SomeShortCode]
 
 Other handy things you could do ? Use Cloud Files expiring object support to automatically expire url's...and other stuff, and things, yea...
