@@ -47,6 +47,7 @@ def _shortcode(url, length=6):
     return sha256(url).hexdigest()[-length:]
 
 def _save_url(shortcode, longurl):
+    #should just have swiftly use before_request
     cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
             snet=True, cache_path=app.config['SWIFTLY_CACHE_PATH'],
             eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
@@ -59,15 +60,13 @@ def _save_url(shortcode, longurl):
     except Exception:
         #because we're ghetto's we'll retry when swiftly loses the connection
         try:
-            print "farking retrying"
+            print "farking retrying...damn it..."
             s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                               contents=redirect_template.render(url=longurl),
                               headers={'x-object-meta-longurl': longurl, 'content-type': 'text/html'})
             print s
         except Exception as err:
             print "Got -> %s" % err
-	    raise
-	    print "shit"
             s = (500, None, None)
     if s[0] // 100 == 2:
         return True
@@ -93,7 +92,6 @@ def shorten():
         parsed = urlparse(clean)
         if parsed.scheme and parsed.netloc:
             code  = _shortcode(clean)
-            print request.host
             if _save_url(code, clean):
                 return jsonify({'shortcode': code,
                                 'shorturl': '%s/%s' % (request.host, code),
@@ -108,16 +106,6 @@ def shorten():
 
 @app.route('/<shortcode>')
 def resolvecode(shortcode):
-    if len(shortcode) != 6:
-        abort(400)
-    url = _get_url(shortcode)
-    if not url:
-        abort(404)
-    else:
-        return redirect(url)
-
-@app.route('/info/<shortcode>')
-def lookup(shortcode):
     if len(shortcode) != 6:
         abort(400)
     url = _get_url(shortcode)
