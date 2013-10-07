@@ -12,7 +12,7 @@ app.config.update(dict(
     DEBUG = False,
     USE_EVENTLET = False,
     SWIFTLY_CACHE_PATH = './.swiftly',
-    USE_SNET = True,
+    USE_SNET = False,
     CF_USERNAME = '',
     CF_API_KEY = '',
     CF_REGION = 'DFW',
@@ -49,7 +49,7 @@ def _shortcode(url, length=6):
 def _save_url(shortcode, longurl):
     #should just have swiftly use before_request
     cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
-            snet=True, cache_path=app.config['SWIFTLY_CACHE_PATH'],
+            snet=app.config['USE_SNET'], cache_path=app.config['SWIFTLY_CACHE_PATH'],
             eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
             verbose=_swiftlyv)
     try:

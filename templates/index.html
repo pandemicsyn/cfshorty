@@ -90,10 +90,10 @@
             </div>
             <div data-bind="foreach: alerts">
               <div class="row">
-                <div class="col-md-6">
-                  <a data-bind="attr: { href: '//' + shorturl, title: 'App Lookup Short Code'}"><i class="icon-external-link"></i> <span data-bind="text: shorturl"></span></a>
+                <div class="col-md-8">
+                  <a data-bind="attr: { href: '//' + shorturl, title: 'App Served Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: shorturl"></span></a>
                   |
-                  <a data-bind="attr: { href: cdnshort, title: 'Direct CDN Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: cdnshort"></span></a>
+                  <a data-bind="attr: { href: cdnshort, title: 'Static Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: cdnshort"></span></a> [Static - CDN]
                 </div>
               </div>
             </div>
@@ -107,7 +107,7 @@
     
     <div id="footer">
       <div class="container">
-        <p class="text-muted credit"><i class="icon-star" style="color: red"></i> Built with Flask. Backed by Swift. Served by gunicorns.</p>
+        <p class="text-muted credit"><i class="icon-star" style="color: red"></i> Built with Flask. Backed by Swift. Served by gunicorns. Available on <a href="//github.com/pandemicsyn/cfshorty">github <i class="icon-github"></i></a></p>
       </div>
     </div>
 
