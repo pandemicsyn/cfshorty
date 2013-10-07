@@ -12,7 +12,7 @@ app.config.update(dict(
     DEBUG = False,
     USE_EVENTLET = False,
     SWIFTLY_CACHE_PATH = './.swiftly',
-    USE_SNET = False,
+    USE_SNET = True,
     CF_USERNAME = '',
     CF_API_KEY = '',
     CF_REGION = 'DFW',
@@ -43,15 +43,14 @@ redirect_template = Template(redir_template_text)
 def _swiftlyv(*args):
     print args
 
-cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
-            app.config['USE_SNET'], cache_path=app.config['SWIFTLY_CACHE_PATH'],
-            eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
-            verbose=_swiftlyv)
-
 def _shortcode(url, length=6):
     return sha256(url).hexdigest()[-length:]
 
 def _save_url(shortcode, longurl):
+    cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
+            snet=True, cache_path=app.config['SWIFTLY_CACHE_PATH'],
+            eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
+            verbose=_swiftlyv)
     try:
         s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                           contents=redirect_template.render(url=longurl),
@@ -67,6 +66,8 @@ def _save_url(shortcode, longurl):
             print s
         except Exception as err:
             print "Got -> %s" % err
+	    raise
+	    print "shit"
             s = (500, None, None)
     if s[0] // 100 == 2:
         return True
@@ -74,7 +75,10 @@ def _save_url(shortcode, longurl):
         return False
 
 def _get_url(source):
-    print 'wtf'
+    cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
+            snet=app.config['USE_SNET'], cache_path=app.config['SWIFTLY_CACHE_PATH'],
+            eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
+            verbose=_swiftlyv)
     res = cf.head_object(app.config['CF_CONTAINER'], source)
     if not res[0] == 200:
         return None
