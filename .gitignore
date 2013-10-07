@@ -1,5 +1,5 @@
 *.py[cod]
-
+cfshorty.config
 # C extensions
 *.so
 
