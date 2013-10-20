@@ -1,5 +1,5 @@
 from hashlib import sha256
-from urllib import quote, unquote
+from urllib import unquote
 from urlparse import urlparse
 from flask import Flask, abort, request, redirect, render_template, jsonify
 from jinja2 import Template
@@ -9,16 +9,17 @@ app = Flask(__name__)
 
 # Load default config and override config from an environment variable
 app.config.update(dict(
-    DEBUG = False,
-    USE_EVENTLET = False,
-    SWIFTLY_CACHE_PATH = './.swiftly',
-    USE_SNET = False,
-    CF_USERNAME = '',
-    CF_API_KEY = '',
-    CF_REGION = 'DFW',
-    CF_AUTH_URL = 'https://identity.api.rackspacecloud.com/v2.0',
-    CF_CONTAINER = 'cfshorty',
-    CF_CDN_URL = None
+    DEBUG=False,
+    USE_EVENTLET=False,
+    SWIFTLY_CACHE_PATH='./.swiftly',
+    USE_SNET=False,
+    CF_USERNAME='',
+    CF_API_KEY='',
+    CF_REGION='DFW',
+    CF_AUTH_URL='https://identity.api.rackspacecloud.com/v2.0',
+    CF_CONTAINER='cfshorty',
+    CF_CDN_URL=None,
+    GOOGLE_ANALYTICS_CODE=None,
 ))
 app.config.from_envvar('CFSHORTY_SETTINGS', silent=False)
 
@@ -40,30 +41,46 @@ If you are not redirected automatically to <a href='{{url}}'>{{url}}</a> follow 
 '''
 redirect_template = Template(redir_template_text)
 
+
 def _swiftlyv(*args):
+    """Little swiftly verbose wrapper"""
     print args
 
-def _shortcode(url, length=6):
+
+def gen_shortcode(url, length=6):
+    """Generate the shortcode for a url
+    
+    :param url: url to shorten
+    :param length: length of the returned shortcode
+    :returns: string shortcode of url
+    """
     return sha256(url).hexdigest()[-length:]
 
+
 def _save_url(shortcode, longurl):
-    #should just have swiftly use before_request
-    cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
-            snet=app.config['USE_SNET'], cache_path=app.config['SWIFTLY_CACHE_PATH'],
-            eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
-            verbose=_swiftlyv)
+    """Save url to Swift"""
+    # should just have swiftly use before_request
+    cf = Client(
+        app.config['CF_AUTH_URL'], app.config[
+            'CF_USERNAME'], app.config['CF_API_KEY'],
+        snet=app.config['USE_SNET'], cache_path=app.config[
+            'SWIFTLY_CACHE_PATH'],
+        eventlet=app.config[
+            'USE_EVENTLET'], region=app.config['CF_REGION'],
+        verbose=_swiftlyv)
     try:
         s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                           contents=redirect_template.render(url=longurl),
-                          headers={'x-object-meta-longurl': longurl, 'content-type': 'text/html'})
+                          headers={'x-object-meta-longurl': longurl,
+                                   'content-type': 'text/html'})
         print s
     except Exception:
-        #because we're ghetto's we'll retry when swiftly loses the connection
         try:
             print "farking retrying...damn it..."
             s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                               contents=redirect_template.render(url=longurl),
-                              headers={'x-object-meta-longurl': longurl, 'content-type': 'text/html'})
+                              headers={'x-object-meta-longurl': longurl,
+                                       'content-type': 'text/html'})
             print s
         except Exception as err:
             print "Got -> %s" % err
@@ -73,16 +90,23 @@ def _save_url(shortcode, longurl):
     else:
         return False
 
+
 def _get_url(source):
-    cf = Client(app.config['CF_AUTH_URL'], app.config['CF_USERNAME'], app.config['CF_API_KEY'],
-            snet=app.config['USE_SNET'], cache_path=app.config['SWIFTLY_CACHE_PATH'],
-            eventlet=app.config['USE_EVENTLET'], region=app.config['CF_REGION'],
-            verbose=_swiftlyv)
+    """Retrive url from swift"""
+    cf = Client(
+        app.config['CF_AUTH_URL'], app.config[
+            'CF_USERNAME'], app.config['CF_API_KEY'],
+        snet=app.config['USE_SNET'], cache_path=app.config[
+            'SWIFTLY_CACHE_PATH'],
+        eventlet=app.config[
+            'USE_EVENTLET'], region=app.config['CF_REGION'],
+        verbose=_swiftlyv)
     res = cf.head_object(app.config['CF_CONTAINER'], source)
     if not res[0] == 200:
         return None
     else:
         return res[2].get('x-object-meta-longurl', None)
+
 
 @app.route('/shorten')
 def shorten():
@@ -91,7 +115,7 @@ def shorten():
         clean = unquote(urlarg)
         parsed = urlparse(clean)
         if parsed.scheme and parsed.netloc:
-            code  = _shortcode(clean)
+            code = gen_shortcode(clean)
             if _save_url(code, clean):
                 return jsonify({'shortcode': code,
                                 'shorturl': '%s/%s' % (request.host, code),
@@ -104,6 +128,7 @@ def shorten():
     else:
         abort(400)
 
+
 @app.route('/<shortcode>')
 def resolvecode(shortcode):
     if len(shortcode) != 6:
@@ -113,6 +138,7 @@ def resolvecode(shortcode):
         abort(404)
     else:
         return redirect(url)
+
 
 @app.route('/')
 def index():

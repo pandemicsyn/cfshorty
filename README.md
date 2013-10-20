@@ -5,7 +5,7 @@ This is the ghetto URL Shortner running at [http://blk.io](http://blk.io) that w
 
 Its built with Flask and uses the Rackspace Cloud Files object store for...storage...of...objects. Tiny tiny objects.
 
-It works by turning a loooong url into a short code (through magic!). The short code is then uploaded as an object to Cloud Files, and served up via the Cloud Files CDN service.  This allows you to expand url's without having to go through the blk.io web service again. 
+It works by turning a loooong url into a short code (through magic!). The short code is then uploaded as an object to Cloud Files, and served up via the Cloud Files CDN service.  This allows you to expand url's without having to go through the blk.io web service again, and will work as long as the CDN and CloudFiles is online (which better be always). 
 
 The contents of the uploaded object is just a simple HTML page that redirects a visitor the original long url when its accessed via CDN at http://small.blk.io/[SomeShortCode]:
 
