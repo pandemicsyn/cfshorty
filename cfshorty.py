@@ -1,7 +1,9 @@
 from hashlib import sha256
 from urllib import unquote
 from urlparse import urlparse
-from flask import Flask, abort, request, redirect, render_template, jsonify
+from flask import Flask, abort, request, redirect, render_template, jsonify, \
+        send_from_directory
+from werkzeug.contrib.cache import MemcachedCache
 from jinja2 import Template
 from swiftly.client import Client
 
@@ -20,8 +22,20 @@ app.config.update(dict(
     CF_CONTAINER='cfshorty',
     CF_CDN_URL=None,
     GOOGLE_ANALYTICS_CODE=None,
+    USE_MEMCACHE=False,
+    MEMCACHE_HOSTS=['127.0.0.1:11211'],
+    CACHE_TTL=604800,
 ))
 app.config.from_envvar('CFSHORTY_SETTINGS', silent=False)
+
+if app.config['USE_MEMCACHE']:
+    from werkzeug.contrib.cache import MemcachedCache
+    cache = MemcachedCache(app.config['MEMCACHE_HOSTS'],
+                           default_timeout=app.config['CACHE_TTL'],
+                           key_prefix='cfshorty:')
+else:
+    cache = lambda *s: None
+    cache.get = cache.set = lambda *s: None
 
 redir_template_text = '''
 <!DOCTYPE HTML>
@@ -86,26 +100,33 @@ def _save_url(shortcode, longurl):
             print "Got -> %s" % err
             s = (500, None, None)
     if s[0] // 100 == 2:
+        cache.set(shortcode, longurl, app.config['CACHE_TTL'])
         return True
     else:
         return False
 
 
-def _get_url(source):
-    """Retrive url from swift"""
-    cf = Client(
-        app.config['CF_AUTH_URL'], app.config[
-            'CF_USERNAME'], app.config['CF_API_KEY'],
-        snet=app.config['USE_SNET'], cache_path=app.config[
-            'SWIFTLY_CACHE_PATH'],
-        eventlet=app.config[
-            'USE_EVENTLET'], region=app.config['CF_REGION'],
-        verbose=_swiftlyv)
-    res = cf.head_object(app.config['CF_CONTAINER'], source)
-    if not res[0] == 200:
-        return None
+def _get_url(shortcode):
+    """Retrive url from cache or swift"""
+    longurl = cache.get('my-item')
+    if longurl:
+        return longurl
     else:
-        return res[2].get('x-object-meta-longurl', None)
+        cf = Client(
+            app.config['CF_AUTH_URL'], app.config[
+                'CF_USERNAME'], app.config['CF_API_KEY'],
+            snet=app.config['USE_SNET'], cache_path=app.config[
+                'SWIFTLY_CACHE_PATH'],
+            eventlet=app.config[
+                'USE_EVENTLET'], region=app.config['CF_REGION'],
+            verbose=_swiftlyv)
+        res = cf.head_object(app.config['CF_CONTAINER'], shortcode)
+        if not res[0] == 200:
+            return None
+        else:
+            longurl = res[2].get('x-object-meta-longurl', None)
+            cache.set(shortcode, longurl)
+            return longurl
 
 
 @app.route('/shorten')
@@ -140,9 +161,19 @@ def resolvecode(shortcode):
         return redirect(url)
 
 
+@app.route('/robots.txt')
+def domoarigato():
+    return send_from_directory(app.static_folder, request.path[1:])
+
+
 @app.route('/')
 def index():
     return render_template('index.html')
+
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=app.config['DEBUG'])

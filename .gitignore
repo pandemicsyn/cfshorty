@@ -1,8 +1,9 @@
 *.py[cod]
 cfshorty.config
 # C extensions
+.swiftly
 *.so
-
+*.DS_Store
 # Packages
 *.egg
 *.egg-info

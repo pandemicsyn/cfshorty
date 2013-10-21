@@ -18,7 +18,7 @@
         background-color:#ffffff;
         background-repeat: no-repeat;
         background-size:100% auto;
-        background-position: 50% 0%;
+        background-position: 50% 100%;
       }
       
       /* Wrapper for page content to push down footer */
@@ -43,20 +43,37 @@
     </style>
     <script src="//cdnjs.cloudflare.com/ajax/libs/knockout/2.3.0/knockout-min.js"></script>
     <script>
+      {% if error %}
+        var i_haz_a_404 = true;
+      {% else %}
+        var i_haz_a_404 = false;
+      {% endif %}
         function AppViewModel() {
             var self = this;
             self.longUrl = ko.observable('');
-            self.alerts = ko.observableArray([]);
+            self.showProgress = ko.observable(false);
+            self.show404 = ko.observable(i_haz_a_404);
+            self.showError = ko.observable(false);
+            self.results = ko.observableArray([]);
         };
-        function doSomething(formElement) {
+        function getShortURL(formElement) {
+            self.showError(false)
+            self.showProgress(true)
+            self.show404(false)
             target = "/shorten?longurl=" + encodeURIComponent(self.longUrl());
-            $.getJSON(target, function(data) {
-                console.log(data)
-                self.alerts.push(data)
-                // Now use this data to update your view models,
-                // and Knockout will update your UI automatically
+            $.getJSON(target)
+            .done(function( data ) {
+              console.log(data)
+              self.showProgress(false)
+              self.results.push(data)
             })
-            console.log(self.longUrl())
+            .fail(function( jqxhr, textStatus, error ) {
+                var err = textStatus + ", " + error;
+                console.log( "Request Failed: " + err );
+                self.showProgress(false);
+                self.showError(true);
+                
+            });
         };
     </script>
   </head>
@@ -73,8 +90,14 @@
           </div>
         </div>
         
+        <div class="row" data-bind="visible: show404">
+          <div class="col-md-6">
+            <div class="alert alert-info">Sorry no such shortcode found</div>
+          </div>
+        </div>
+        
         <div class="form-group">
-          <form data-bind="submit: doSomething">
+          <form data-bind="submit: getShortURL">
             <div class="row">
               <div class="col-md-6"><input id="longurl" data-bind="value: longUrl" type="url" class="form-control" placeholder="Enter a link to shorten..." autofocus></div>
             </div>
@@ -82,17 +105,40 @@
               <div class="col-md-6"></div>
             </div>
             <div class="row">
-              <div class="col-md-6"><button class="btn btn-md btn-primary btn-block" type="submit">Shorten</button></div>
+              <div class="col-md-6">
+                <button class="btn btn-md btn-primary btn-block" type="submit">
+                  Shorten
+                </button>
+              </div>
             </div>
             <div class="row">
               <div class="col-md-6">&nbsp;</div>
             </div>
-            <div data-bind="foreach: alerts">
-              <div class="row">
-                <div class="col-md-8">
-                  <a data-bind="attr: { href: '//' + shorturl, title: 'App Served Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: shorturl"></span></a>
-                  |
-                  <a data-bind="attr: { href: cdnshort, title: 'Static Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: cdnshort"></span></a> [Static - CDN]
+            <div class="row" data-bind="visible: showError">
+              <div class="col-md-6">
+                <div class="alert alert-danger alert-dismissable">
+                  <button type="button" class="close" data-dismiss="alert" aria-hidden="true">&times;</button>
+                  Doh. Error trying to shorten url. You should try again.
+                </div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-8">
+                <ol data-bind="foreach: results">
+                  <li>
+                    <a data-bind="attr: { href: '//' + shorturl, title: 'App Served Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: shorturl"></span></a>
+                    |
+                    <a data-bind="attr: { href: cdnshort, title: 'Static Short URL'}"><i class="icon-external-link"></i> <span data-bind="text: cdnshort"></span></a> [Static]
+                  </li>
+                </ol>
+              </div>
+            </div>
+            <div class="row" data-bind="visible: showProgress">
+              <div class="col-md-6">
+                <div class="progress progress-striped active">
+                  <div class="progress-bar progress-bar-info"  role="progressbar" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100" style="width: 100%">
+                    <span class="sr-only">Storing URL</span>
+                  </div>
                 </div>
               </div>
             </div>
