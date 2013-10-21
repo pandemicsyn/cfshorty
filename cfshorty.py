@@ -153,10 +153,10 @@ def shorten():
 @app.route('/<shortcode>')
 def resolvecode(shortcode):
     if len(shortcode) != 6:
-        return render_template('404.html'), 404
+        abort(404)
     url = _get_url(shortcode)
     if not url:
-        return render_template('404.html'), 404
+        abort(404)
     else:
         return redirect(url)
 
@@ -173,7 +173,7 @@ def index():
 
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('404.html'), 404
+    return render_template('index.html', error=404), 404
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', debug=app.config['DEBUG'])
