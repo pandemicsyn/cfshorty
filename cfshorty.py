@@ -153,10 +153,10 @@ def shorten():
 @app.route('/<shortcode>')
 def resolvecode(shortcode):
     if len(shortcode) != 6:
-        abort(400)
+        return render_template('404.html'), 404
     url = _get_url(shortcode)
     if not url:
-        abort(404)
+        return render_template('404.html'), 404
     else:
         return redirect(url)
 
