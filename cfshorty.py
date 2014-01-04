@@ -108,7 +108,7 @@ def _save_url(shortcode, longurl):
 
 def _get_url(shortcode):
     """Retrive url from cache or swift"""
-    longurl = cache.get('my-item')
+    longurl = cache.get(shortcode)
     if longurl:
         return longurl
     else:
