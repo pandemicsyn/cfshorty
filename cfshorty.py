@@ -135,6 +135,9 @@ def shorten():
     urlarg = request.args.get('longurl')
     if urlarg:
         clean = unquote(urlarg)
+        if not clean.startswith('http://') or clean.startswith('https://'):
+            # Default to http
+            clean = 'http://' + clean
         parsed = urlparse(clean)
         if parsed.scheme and parsed.netloc:
             code = gen_shortcode(clean)
