@@ -60,7 +60,8 @@ redirect_template = Template(redir_template_text)
 
 def _swiftlyv(*args):
     """Little swiftly verbose wrapper"""
-    print args
+    if app.config['DEBUG'] is True:
+        print args
 
 
 def gen_shortcode(url, length=6):
@@ -80,16 +81,20 @@ def _save_url(shortcode, longurl):
         s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                           contents=redirect_template.render(url=longurl),
                           headers={'x-object-meta-longurl': longurl,
-                                   'content-type': 'text/html'})
-        print s
+                                   'content-type': 'text/html'}
+                          )
+        if app.config['DEBUG'] is True:
+            print s
     except Exception:
         try:
             print "farking retrying...damn it..."
             s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                               contents=redirect_template.render(url=longurl),
                               headers={'x-object-meta-longurl': longurl,
-                                       'content-type': 'text/html'})
-            print s
+                                       'content-type': 'text/html'}
+                              )
+            if app.config['DEBUG'] is True:
+                print s
         except Exception as err:
             print "Got -> %s" % err
             s = (500, None, None)
