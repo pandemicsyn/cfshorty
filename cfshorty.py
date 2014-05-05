@@ -6,6 +6,7 @@ from flask import Flask, abort, request, redirect, render_template, jsonify, \
 from werkzeug.contrib.cache import MemcachedCache
 from jinja2 import Template
 from swiftly.client import StandardClient
+import sys
 
 app = Flask(__name__)
 
@@ -75,16 +76,6 @@ def gen_shortcode(url, length=6):
 def _save_url(shortcode, longurl):
     """Save url to Swift"""
     # should just have swiftly use before_request
-    cf = StandardClient(
-        auth_url=app.config['CF_AUTH_URL'],
-        auth_user=app.config['CF_USERNAME'],
-        auth_key=app.config['CF_API_KEY'],
-        snet=app.config['USE_SNET'],
-        auth_cache_path=app.config['SWIFTLY_AUTH_CACHE_PATH'],
-        eventlet=app.config['USE_EVENTLET'],
-        region=app.config['CF_REGION'],
-        verbose=_swiftlyv
-    )
     try:
         s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                           contents=redirect_template.render(url=longurl),
@@ -120,7 +111,7 @@ def _get_url(shortcode):
             auth_user=app.config['CF_USERNAME'],
             auth_key=app.config['CF_API_KEY'],
             snet=app.config['USE_SNET'],
-            cache_path=app.config['SWIFTLY_AUTH_CACHE_PATH'],
+            auth_cache_path=app.config['SWIFTLY_AUTH_CACHE_PATH'],
             eventlet=app.config['USE_EVENTLET'],
             region=app.config['CF_REGION'],
             verbose=_swiftlyv
@@ -182,4 +173,21 @@ def page_not_found(e):
     return render_template('index.html', error=404), 404
 
 if __name__ == '__main__':
+    try:
+        cf = StandardClient(
+            auth_url=app.config['CF_AUTH_URL'],
+            auth_user=app.config['CF_USERNAME'],
+            auth_key=app.config['CF_API_KEY'],
+            snet=app.config['USE_SNET'],
+            auth_cache_path=app.config['SWIFTLY_AUTH_CACHE_PATH'],
+            eventlet=app.config['USE_EVENTLET'],
+            region=app.config['CF_REGION'],
+            verbose=_swiftlyv
+        )
+        # Create the container if it doesn't exist
+        if cf.head_container(app.config['CF_CONTAINER'])[0] != 204:
+            cf.put_container(app.config['CF_CONTAINER'])
+    except Exception as err:
+        print "Got -> %s" % err
+        sys.exit(1)
     app.run(host='0.0.0.0', debug=app.config['DEBUG'])
