@@ -5,7 +5,7 @@ from flask import Flask, abort, request, redirect, render_template, jsonify, \
     send_from_directory
 from werkzeug.contrib.cache import MemcachedCache
 from jinja2 import Template
-from swiftly.client import Client
+from swiftly.client import StandardClient
 
 app = Flask(__name__)
 
@@ -13,7 +13,7 @@ app = Flask(__name__)
 app.config.update(dict(
     DEBUG=False,
     USE_EVENTLET=False,
-    SWIFTLY_CACHE_PATH='./.swiftly',
+    SWIFTLY_AUTH_CACHE_PATH='./.swiftly',
     USE_SNET=False,
     CF_USERNAME='',
     CF_API_KEY='',
@@ -75,14 +75,16 @@ def gen_shortcode(url, length=6):
 def _save_url(shortcode, longurl):
     """Save url to Swift"""
     # should just have swiftly use before_request
-    cf = Client(
-        app.config['CF_AUTH_URL'], app.config[
-            'CF_USERNAME'], app.config['CF_API_KEY'],
-        snet=app.config['USE_SNET'], cache_path=app.config[
-            'SWIFTLY_CACHE_PATH'],
-        eventlet=app.config[
-            'USE_EVENTLET'], region=app.config['CF_REGION'],
-        verbose=_swiftlyv)
+    cf = StandardClient(
+        auth_url=app.config['CF_AUTH_URL'],
+        auth_user=app.config['CF_USERNAME'],
+        auth_key=app.config['CF_API_KEY'],
+        snet=app.config['USE_SNET'],
+        auth_cache_path=app.config['SWIFTLY_AUTH_CACHE_PATH'],
+        eventlet=app.config['USE_EVENTLET'],
+        region=app.config['CF_REGION'],
+        verbose=_swiftlyv
+    )
     try:
         s = cf.put_object(app.config['CF_CONTAINER'], shortcode,
                           contents=redirect_template.render(url=longurl),
@@ -113,14 +115,16 @@ def _get_url(shortcode):
     if longurl:
         return longurl
     else:
-        cf = Client(
-            app.config['CF_AUTH_URL'], app.config[
-                'CF_USERNAME'], app.config['CF_API_KEY'],
-            snet=app.config['USE_SNET'], cache_path=app.config[
-                'SWIFTLY_CACHE_PATH'],
-            eventlet=app.config[
-                'USE_EVENTLET'], region=app.config['CF_REGION'],
-            verbose=_swiftlyv)
+        cf = StandardClient(
+            auth_url=app.config['CF_AUTH_URL'],
+            auth_user=app.config['CF_USERNAME'],
+            auth_key=app.config['CF_API_KEY'],
+            snet=app.config['USE_SNET'],
+            cache_path=app.config['SWIFTLY_AUTH_CACHE_PATH'],
+            eventlet=app.config['USE_EVENTLET'],
+            region=app.config['CF_REGION'],
+            verbose=_swiftlyv
+        )
         res = cf.head_object(app.config['CF_CONTAINER'], shortcode)
         if not res[0] == 200:
             return None
