@@ -2,7 +2,7 @@ from hashlib import sha256
 from urllib import unquote
 from urlparse import urlparse
 from flask import Flask, abort, request, redirect, render_template, jsonify, \
-        send_from_directory
+    send_from_directory
 from werkzeug.contrib.cache import MemcachedCache
 from jinja2 import Template
 from swiftly.client import Client
@@ -49,7 +49,8 @@ redir_template_text = '''
     <title>{{url}} - Page Redirection</title>
 </head>
 <body>
-If you are not redirected automatically to <a href='{{url}}'>{{url}}</a> follow <a href='{{url}}'>this link</a>
+If you are not redirected automatically to <a href='{{url}}'>{{url}}</a>
+ follow <a href='{{url}}'>this link</a>
 </body>
 </html>
 '''
@@ -63,7 +64,7 @@ def _swiftlyv(*args):
 
 def gen_shortcode(url, length=6):
     """Generate the shortcode for a url
-    
+
     :param url: url to shorten
     :param length: length of the returned shortcode
     :returns: string shortcode of url
@@ -140,7 +141,8 @@ def shorten():
             if _save_url(code, clean):
                 return jsonify({'shortcode': code,
                                 'shorturl': '%s/%s' % (request.host, code),
-                                'cdnshort': '%s/%s' % (app.config['CF_CDN_URL'] or request.host, code),
+                                'cdnshort': '%s/%s' % (app.config['CF_CDN_URL']
+                                                       or request.host, code),
                                 'longurl': clean})
             else:
                 abort(500)
